@@ -752,7 +752,7 @@ static NSString *wq_folder_date_text(NSDate *date)
     if (paths.count == 0) return;
     NSString *message = [NSString stringWithFormat:
         @"这将永久删除 %lu 个完整备份及其中的全部内容，且无法撤销。",
-        (unsigned long)paths.count, paths.count == 1 ? @"" : @"s"];
+        (unsigned long)paths.count];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"删除备份？"
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
@@ -825,12 +825,12 @@ static NSString *wq_folder_date_text(NSDate *date)
                 NSString *left = @"";
                 if (elapsed > 5 && done > 0 && done < total) {
                     double remaining = elapsed * (double)(total - done) / (double)done;
-                    left = remaining >= 90 ? [NSString stringWithFormat:@" · about %.0f min left", ceil(remaining / 60)]
-                                           : @" · less than 2 min left";
+                    left = remaining >= 90 ? [NSString stringWithFormat:@" · 还剩约 %.0f 分钟", ceil(remaining / 60)]
+                                           : @" · 还剩不到 2 分钟";
                 }
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (generation != self->_scanGeneration || cancellation.isCancelled) return;
-                    self->_scanStatus = [NSString stringWithFormat:@"正在扫描 inode… %lld%% · 已找到 %lu 个",
+                    self->_scanStatus = [NSString stringWithFormat:@"正在扫描 inode… %lld%% · 已找到 %lu 个%@",
                                          total ? (long long)(done * 100 / total) : 0, (unsigned long)f, left];
                     [self updateHeader];
                 });
