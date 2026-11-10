@@ -1,0 +1,43 @@
+name: Unpack source
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract zip and commit contents
+        run: |
+          python3 - <<'PY'
+          import zipfile, os
+          z = zipfile.ZipFile('WQFiles-zh-src.zip')
+          names = [n for n in z.namelist() if n and not n.startswith('__MACOSX/')]
+          print('\n'.join(names))
+          firsts = {n.split('/')[0] for n in names}
+          prefix = ''
+          if len(firsts) == 1:
+              cand = next(iter(firsts))
+              if all(n.startswith(cand + '/') for n in names):
+                  prefix = cand + '/'
+          print('prefix:', repr(prefix))
+          for info in z.infolist():
+              fn = info.filename
+              if fn.startswith('__MACOSX/'):
+                  continue
+              target = fn[len(prefix):] if prefix else fn
+              if not target or target.endswith('/'):
+                  continue
+              data = z.read(info)
+              os.makedirs(os.path.dirname(target) or '.', exist_ok=True)
+              with open(target, 'wb') as f:
+                  f.write(data)
+          PY
+          rm -f WQFiles-zh-src.zip .github/workflows/unpack.yml
+          git config user.name "leguagou-debug"
+          git config user.email "leguagou@gmail.com"
+          git add -A
+          git status --short
+          git commit -m "Upload WQFiles-zh source (extracted from WQFiles-zh-src.zip)" || echo "nothing to commit"
+          git push
