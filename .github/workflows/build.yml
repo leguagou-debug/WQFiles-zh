@@ -1,0 +1,19 @@
+name: Build WQFiles zh
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode
+        run: xcodebuild -version; xcrun --sdk iphoneos --show-sdk-path
+      - name: Build IPA
+        run: ./build.sh
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: WQFiles-zh
+          path: WQFiles.ipa
