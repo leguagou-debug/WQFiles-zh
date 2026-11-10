@@ -1,0 +1,29 @@
+name: Unpack v2 source
+
+on:
+  workflow_dispatch:
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack source zip over repo root
+        run: |
+          set -euo pipefail
+          test -f WQFiles-zh-src.zip
+          unzip -o WQFiles-zh-src.zip -d /tmp/wqsrc
+          cp -a /tmp/wqsrc/. .
+          rm -rf /tmp/wqsrc WQFiles-zh-src.zip .github/workflows/unpack.yml
+          git status --short
+          if git diff --name-only | grep -qxE '(build\.sh|\.github/workflows/build\.yml|entitlements\.plist)'; then
+            echo 'Protected file changed - aborting' >&2
+            exit 1
+          fi
+          git add -A
+          git status --short
+          git diff --cached --stat
+          git -c user.name='leguagou-debug' -c user.email='leguagou@gmail.com' commit -m 'Full UI translation to Chinese (v2)'
+          git push
