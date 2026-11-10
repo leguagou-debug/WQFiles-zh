@@ -43,15 +43,15 @@ static inline NSString *WQPlistFormatName(NSPropertyListFormat format)
 {
     switch (format) {
         case NSPropertyListXMLFormat_v1_0: return @"XML";
-        case NSPropertyListBinaryFormat_v1_0: return @"Binary";
+        case NSPropertyListBinaryFormat_v1_0: return @"二进制";
         case NSPropertyListOpenStepFormat: return @"OpenStep";
-        default: return @"Unknown";
+        default: return @"未知";
     }
 }
 
 static inline NSString *WQPBoundedStringPreview(NSString *value)
 {
-    if (value.length == 0) return @"(empty)";
+    if (value.length == 0) return @"（空）";
     if (value.length <= WQPMaxDisplayedStringCharacters) return value;
 
     NSString *suffix = [NSString stringWithFormat:@" … (%lu chars)", (unsigned long)value.length];

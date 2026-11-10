@@ -14,7 +14,7 @@
 NSString *wq_device_line(void)
 {
     struct utsname u;
-    NSString *machine = (uname(&u) == 0) ? @(u.machine) : @"unknown";
+    NSString *machine = (uname(&u) == 0) ? @(u.machine) : @"未知";
     char build[64] = {0};
     size_t len = sizeof(build);
     NSString *buildStr = (sysctlbyname("kern.osversion", build, &len, NULL, 0) == 0) ? @(build) : nil;
@@ -273,7 +273,7 @@ void wq_alert(UIViewController *host, NSString *title, NSString *message)
     if (host.presentedViewController && !host.presentedViewController.isBeingDismissed) return;
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
     [host presentViewController:alert animated:YES completion:nil];
 }
 

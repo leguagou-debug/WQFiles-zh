@@ -110,7 +110,7 @@ static BOOL wq_backup_parts_on_disk(NSString *backup, NSArray<NSString *> *expec
         [actual addObject:name];
     }
     if (![actual isEqualToSet:[NSSet setWithArray:expectedParts]]) {
-        if (error) *error = @"The backup manifest does not match the on-disk parts";
+        if (error) *error = @"备份清单与磁盘上的部分不匹配";
         return NO;
     }
     return YES;
@@ -124,12 +124,12 @@ static BOOL wq_validate_backup(NSString *backup, NSString *bundleID, BOOL allowL
                                BOOL *verifiedOut, NSString **error)
 {
     if (!wq_backup_root_child(backup, bundleID)) {
-        if (error) *error = @"The backup path is outside this app's backup folder";
+        if (error) *error = @"备份路径不在此 App 的备份文件夹内";
         return NO;
     }
     struct stat backupStat;
     if (lstat(backup.fileSystemRepresentation, &backupStat) != 0 || !S_ISDIR(backupStat.st_mode)) {
-        if (error) *error = @"The backup folder is missing";
+        if (error) *error = @"备份文件夹缺失";
         return NO;
     }
     NSString *manifestPath = [backup stringByAppendingPathComponent:kBackupManifest];
@@ -141,7 +141,7 @@ static BOOL wq_validate_backup(NSString *backup, NSString *bundleID, BOOL allowL
     }
     BOOL hasManifest = manifestResult == 0;
     if (hasManifest && !S_ISREG(manifestStat.st_mode)) {
-        if (error) *error = @"The backup manifest is not a regular file";
+        if (error) *error = @"备份清单不是常规文件";
         return NO;
     }
     NSDictionary *manifest = hasManifest ? wq_backup_manifest(backup) : nil;
@@ -156,7 +156,7 @@ static BOOL wq_validate_backup(NSString *backup, NSString *bundleID, BOOL allowL
         verified = YES;
     } else {
         if (!allowLegacy) {
-            if (error) *error = @"The safety backup has no typed manifest";
+            if (error) *error = @"安全备份没有类型化清单";
             return NO;
         }
         NSMutableArray *legacyParts = [NSMutableArray new];
@@ -221,7 +221,7 @@ static NSString *wq_backup_label(NSDictionary *__unused backup)
 {
     NSString *label = backup[@"name"];
     if ([backup[@"reason"] length]) label = [label stringByAppendingFormat:@" (%@)", [backup[@"reason"] lowercaseString]];
-    if (![backup[@"verified"] boolValue]) label = [label stringByAppendingString:@" (older, unverified)"];
+    if (![backup[@"verified"] boolValue]) label = [label stringByAppendingString:@"（较旧，未验证）"];
     return label;
 }
 
@@ -230,16 +230,16 @@ static BOOL wq_validate_container(NSString *container, NSString *bundleID, dev_t
 {
     struct stat st;
     if (lstat(container.fileSystemRepresentation, &st) != 0 || !S_ISDIR(st.st_mode)) {
-        if (error) *error = @"The app container no longer exists or is not a directory";
+        if (error) *error = @"App 容器已不存在或不是文件夹";
         return NO;
     }
     if (expectedDevice && expectedInode && (st.st_dev != expectedDevice || st.st_ino != expectedInode)) {
-        if (error) *error = @"The app container was replaced after it was scanned";
+        if (error) *error = @"App 容器在扫描后已被替换";
         return NO;
     }
     NSString *label = wq_container_label(container);
     if (!label.length || ![label isEqualToString:bundleID]) {
-        if (error) *error = @"The app container identity no longer matches the selected app";
+        if (error) *error = @"App 容器身份与所选 App 不再匹配";
         return NO;
     }
     return YES;
@@ -258,7 +258,7 @@ static BOOL wq_copy_part_and_verify(NSString *src, NSString *dst, NSString **err
     if (!sourceAfter || !sourceShape || !destinationShape || !sourceBeforeExists || !srcExists || !dstExists ||
         ![sourceBefore isEqualToString:sourceAfter] ||
         ![sourceShape isEqualToString:destinationShape]) {
-        if (error && !*error) *error = @"The copied tree could not be verified (the source changed or the copy is incomplete)";
+        if (error && !*error) *error = @"无法验证复制的树（源已更改或复制不完整）";
         return NO;
     }
     return YES;
@@ -292,7 +292,7 @@ static NSString *wq_make_app_backup(NSString *bundleID, NSString *container, dev
                                     ino_t expectedInode, NSString *reason, NSString **error)
 {
     if (!WQAppsSupportBundleIDValid(bundleID)) {
-        if (error) *error = @"The app identifier is not a valid bundle identifier";
+        if (error) *error = @"App 标识符不是有效的 Bundle ID";
         return nil;
     }
     NSFileManager *fm = NSFileManager.defaultManager;
@@ -417,7 +417,7 @@ static BOOL wq_dir_size_cancellable(NSString *dir, WQScanCancellation *cancellat
     UISearchController *search = [[UISearchController alloc] initWithSearchResultsController:nil];
     search.searchResultsUpdater = self;
     search.obscuresBackgroundDuringPresentation = NO;
-    search.searchBar.placeholder = @"Search apps";
+    search.searchBar.placeholder = @"搜索 App";
     self.navigationItem.searchController = search;
     self.navigationItem.hidesSearchBarWhenScrolling = NO;
     self.definesPresentationContext = YES;
@@ -501,7 +501,7 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
     _scanCancellation = cancellation;
     NSUInteger generation = ++_scanGeneration;
     _scanning = YES;
-    [self setBusy:YES status:@"Finding apps…"];
+    [self setBusy:YES status:@"正在查找 App…"];
     NSString *home = [NSHomeDirectory() stringByResolvingSymlinksInPath];
     WQAppScanStep(@"finding app containers");
     WQAppScanWatch(cancellation, 0, 0);
@@ -518,7 +518,7 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
         if (!cancellation.isCancelled && !wq_display_names_loaded()) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (generation != self->_scanGeneration || cancellation.isCancelled) return;
-                self->_status = @"Reading app names…";
+                self->_status = @"正在读取 App 名称…";
                 [self.tableView reloadData];
             });
             WQAppScanStep(@"reading app names");
@@ -569,12 +569,12 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
             app.containerInode = hasIdentity ? identity.st_ino : 0;
             if (bid.length) (void)wq_app_icon(bid);   // warm the icon off the main thread
             app.name = bid.length ? (wq_display_name(bid) ?: bid)
-                                  : [NSString stringWithFormat:@"Unknown container (%@)", c.lastPathComponent];
+                                  : [NSString stringWithFormat:@"未知容器（%@）", c.lastPathComponent];
             app.bytes = 0;
             app.sizeKnown = NO;
             unsigned long long appSize = 0;
             BOOL sizeKnown = NO;
-            WQAppScanStep([NSString stringWithFormat:@"measuring %@ (%@)", shortName, bid ?: @"no identifier"]);
+            WQAppScanStep([NSString stringWithFormat:@"正在测量 %@（%@）", shortName, bid ?: @"无标识符"]);
             if (granted && hasIdentity && !wq_dir_size_cancellable(c, cancellation, &appSize, &sizeKnown)) { WQAppScanStep(nil); return; }
             app.bytes = appSize;
             app.sizeKnown = sizeKnown;
@@ -591,9 +591,9 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
             return a.bytes > b.bytes ? NSOrderedAscending : (a.bytes < b.bytes ? NSOrderedDescending : NSOrderedSame);
         }];
         NSString *note = nil;
-        if (!containers) note = @"Container enumeration failed. See Log for the statfs/inode reason.";
-        else if (!containers.count) note = @"No app containers were found. Refresh, and check Log for the enumeration reason.";
-        else if (limited || sizeLimited) note = [NSString stringWithFormat:@"%lu containers · %lu with limited access, identity, size, or no identifier. See Log.",
+        if (!containers) note = @"容器枚举失败。请查看日志了解 statfs/inode 原因。";
+        else if (!containers.count) note = @"未找到 App 容器。请刷新，并查看日志了解枚举原因。";
+        else if (limited || sizeLimited) note = [NSString stringWithFormat:@"%lu 个容器 · 其中 %lu 个访问、身份、大小受限或没有标识符。请查看日志。",
                                                  (unsigned long)apps.count, (unsigned long)(limited + sizeLimited)];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (generation != self->_scanGeneration || cancellation.isCancelled) return;
@@ -640,14 +640,14 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
     if (_status) return _status;
     unsigned long long total = 0;
     for (WQAppItem *a in _apps) total += a.bytes;
-    if (_query.length) return [NSString stringWithFormat:@"%lu of %lu apps", (unsigned long)self.visibleApps.count, (unsigned long)_apps.count];
-    return [NSString stringWithFormat:@"%lu apps · %@ of app data", (unsigned long)_apps.count, wq_size_text(total)];
+    if (_query.length) return [NSString stringWithFormat:@"%lu / %lu 个 App", (unsigned long)self.visibleApps.count, (unsigned long)_apps.count];
+    return [NSString stringWithFormat:@"%lu 个 App · 应用数据 %@", (unsigned long)_apps.count, wq_size_text(total)];
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section
 {
-    return @"Tap an app to back up, restore or clear its Documents and Library. Close the app first (swipe it away in the app switcher); operations are not snapshot-consistent while it runs. "
-            "Backups are stored in WQFiles/AppBackups and are visible in the Files app. tmp is cleared when requested but is not backed up or restored.";
+    return @"点按一个 App 可备份、恢复或清除其 Documents 和 Library。请先关闭该 App（在 App 切换器中将其滑走）；运行时操作无法保证快照一致。"
+            "备份保存在 WQFiles/AppBackups 中，在“文件”App 里也能看到。tmp 会按要求清除，但不会备份或恢复。";
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -656,7 +656,7 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
         ?: [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"app"];
     UIListContentConfiguration *c = cell.defaultContentConfiguration;
     if (_busy && !_apps.count) {
-        c.text = @"Scanning…";
+        c.text = @"正在扫描…";
         cell.contentConfiguration = c;
         cell.accessoryType = UITableViewCellAccessoryNone;
         return cell;
@@ -666,15 +666,15 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
     NSString *identifier = app.bundleID.length ? app.bundleID : app.container.lastPathComponent;
     BOOL hasBackup = app.backups.count > 0;
     if (!app.hasAccess) {
-        c.secondaryText = [NSString stringWithFormat:@"Access unavailable · %@", identifier];
+        c.secondaryText = [NSString stringWithFormat:@"无法访问 · %@", identifier];
     } else if (!app.bundleID.length) {
-        c.secondaryText = [NSString stringWithFormat:@"%@ · %@ · no identifier", wq_size_text(app.bytes), identifier];
+        c.secondaryText = [NSString stringWithFormat:@"%@ · %@ · 无标识符", wq_size_text(app.bytes), identifier];
     } else if (!app.hasIdentity) {
-        c.secondaryText = [NSString stringWithFormat:@"%@ · %@ · container identity unavailable", wq_size_text(app.bytes), app.bundleID];
+        c.secondaryText = [NSString stringWithFormat:@"%@ · %@ · 容器身份不可用", wq_size_text(app.bytes), app.bundleID];
     } else if (!app.sizeKnown) {
-        c.secondaryText = [NSString stringWithFormat:@"size unavailable · %@%@", app.bundleID, hasBackup ? @" · backed up" : @""];
+        c.secondaryText = [NSString stringWithFormat:@"大小不可用 · %@%@", app.bundleID, hasBackup ? @" · 已备份" : @""];
     } else {
-        c.secondaryText = [NSString stringWithFormat:@"%@ · %@%@", wq_size_text(app.bytes), app.bundleID, hasBackup ? @" · backed up" : @""];
+        c.secondaryText = [NSString stringWithFormat:@"%@ · %@%@", wq_size_text(app.bytes), app.bundleID, hasBackup ? @" · 已备份" : @""];
     }
     c.secondaryTextProperties.color = UIColor.secondaryLabelColor;
     c.image = wq_app_icon(app.bundleID) ?: [UIImage systemImageNamed:@"app.dashed"];
@@ -691,19 +691,19 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
     WQAppItem *app = self.visibleApps[(NSUInteger)indexPath.row];
     if (!app.hasAccess || !app.bundleID.length || !app.hasIdentity) {
         NSString *why = app.hasAccess && app.bundleID.length && !app.hasIdentity
-            ? @"The container identity is unavailable or changed. Backup, restore and clear are disabled for this entry."
+            ? @"容器身份不可用或已更改。此条目的备份、恢复和清除功能已禁用。"
             : app.hasAccess
-            ? @"The container identifier is unavailable. Backup, restore and clear are disabled for this entry."
-            : @"Sandbox access is unavailable. Check the App Group and see Log; only the container path can be copied.";
+            ? @"容器标识符不可用。此条目的备份、恢复和清除功能已禁用。"
+            : @"沙盒访问不可用。请检查 App Group 并查看日志；只能复制容器路径。";
         UIAlertController *sheet = [UIAlertController alertControllerWithTitle:app.name
             message:[NSString stringWithFormat:@"%@\n\n%@", app.container, why]
             preferredStyle:UIAlertControllerStyleActionSheet];
         if (app.hasAccess) {
-            [sheet addAction:[UIAlertAction actionWithTitle:@"Open Data Folder" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
+            [sheet addAction:[UIAlertAction actionWithTitle:@"打开数据文件夹" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
                 [self.navigationController pushViewController:[[WQDirViewController alloc] initWithPath:app.container title:app.name] animated:YES];
             }]];
         }
-        [sheet addAction:[UIAlertAction actionWithTitle:@"Copy Container Path" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
+        [sheet addAction:[UIAlertAction actionWithTitle:@"复制容器路径" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
             UIPasteboard.generalPasteboard.string = app.container;
         }]];
         [sheet addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
@@ -715,29 +715,29 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
     }
     UIAlertController *sheet = [UIAlertController alertControllerWithTitle:app.name
         message:[NSString stringWithFormat:@"%@\n%@", app.bundleID,
-                 app.sizeKnown ? [NSString stringWithFormat:@"%@ of data", wq_size_text(app.bytes)] : @"size unavailable"]
+                 app.sizeKnown ? [NSString stringWithFormat:@"%@ 数据", wq_size_text(app.bytes)] : @"大小不可用"]
         preferredStyle:UIAlertControllerStyleActionSheet];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"Back Up Data" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
+    [sheet addAction:[UIAlertAction actionWithTitle:@"备份数据" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
         [self backUp:app then:nil];
     }]];
     NSArray *backups = app.backups;
     NSString *latest = backups.firstObject[@"path"];
     if (latest) {
-        NSString *title = backups.count == 1 ? [NSString stringWithFormat:@"Restore Backup (%@)", wq_backup_label(backups.firstObject)]
-                                             : [NSString stringWithFormat:@"Restore a Backup… (%lu)", (unsigned long)backups.count];
+        NSString *title = backups.count == 1 ? [NSString stringWithFormat:@"恢复备份（%@）", wq_backup_label(backups.firstObject)]
+                                             : [NSString stringWithFormat:@"恢复备份…（%lu 个）", (unsigned long)backups.count];
         [sheet addAction:[UIAlertAction actionWithTitle:title style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
             [self pickBackupToRestore:app from:[tableView cellForRowAtIndexPath:indexPath]];
         }]];
-        [sheet addAction:[UIAlertAction actionWithTitle:@"Share Latest Backup (AirDrop…)"
+        [sheet addAction:[UIAlertAction actionWithTitle:@"分享最新备份（隔空投送…）"
                                                   style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
             UITableViewCell *c = [tableView cellForRowAtIndexPath:indexPath];
             wq_share_folder(self, latest, [NSString stringWithFormat:@"%@ %@", app.name, latest.lastPathComponent], c);
         }]];
     }
-    [sheet addAction:[UIAlertAction actionWithTitle:@"Clear Data…" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *__unused a) {
+    [sheet addAction:[UIAlertAction actionWithTitle:@"清除数据…" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *__unused a) {
         [self confirmClear:app];
     }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"Open Data Folder" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
+    [sheet addAction:[UIAlertAction actionWithTitle:@"打开数据文件夹" style:UIAlertActionStyleDefault handler:^(UIAlertAction *__unused a) {
         [self.navigationController pushViewController:[[WQDirViewController alloc] initWithPath:app.container title:app.name] animated:YES];
     }]];
     [sheet addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
@@ -756,23 +756,23 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
 
 - (void)backUp:(WQAppItem *)app then:(void (^)(BOOL ok))next
 {
-    [self setBusy:YES status:[NSString stringWithFormat:@"Backing up %@…", app.name]];
+    [self setBusy:YES status:[NSString stringWithFormat:@"正在备份 %@…", app.name]];
     dispatch_async(wq_io(), ^{
         NSString *error = nil;
         NSString *dest = wq_make_app_backup(app.bundleID, app.container, app.containerDevice,
                                              app.containerInode, nil, &error);
         dispatch_async(dispatch_get_main_queue(), ^{
             if (next) { next(dest != nil); return; }
-            [self finish:dest ? @"Backed up" : @"Backup failed"
-                 message:dest ? [NSString stringWithFormat:@"Saved to AppBackups/%@/%@", app.bundleID, dest.lastPathComponent]
-                              : [NSString stringWithFormat:@"Nothing was saved: %@", error ?: @"see Log"]];
+            [self finish:dest ? @"已备份" : @"备份失败"
+                 message:dest ? [NSString stringWithFormat:@"已保存到 AppBackups/%@/%@", app.bundleID, dest.lastPathComponent]
+                              : [NSString stringWithFormat:@"未保存任何内容：%@", error ?: @"请查看日志"]];
         });
     });
 }
 
 - (void)clear:(WQAppItem *)app
 {
-    [self setBusy:YES status:[NSString stringWithFormat:@"Clearing %@…", app.name]];
+    [self setBusy:YES status:[NSString stringWithFormat:@"正在清除 %@…", app.name]];
     dispatch_async(wq_io(), ^{
         unsigned long long freed = 0;
         NSString *error = nil;
@@ -785,27 +785,27 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
         if (ok && !wq_validate_container(app.container, app.bundleID, app.containerDevice, app.containerInode, &error)) ok = NO;
         wq_log(@"clear data: %@ freed %llu ok=%d", app.bundleID, freed, ok);
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self finish:ok ? @"Data cleared" : @"Partly cleared"
-                 message:[NSString stringWithFormat:@"Freed about %@.%@ Open %@ to start fresh.", wq_size_text(freed),
-                          ok ? @"" : [NSString stringWithFormat:@" %@. Keep the app closed and try again.", error ?: @"Some items could not be removed (see Log)"], app.name]];
+            [self finish:ok ? @"数据已清除" : @"部分清除"
+                 message:[NSString stringWithFormat:@"已释放约 %@。%@请打开 %@ 重新开始。", wq_size_text(freed),
+                          ok ? @"" : [NSString stringWithFormat:@" %@。请保持该 App 关闭并重试。", error ?: @"Some items could not be removed (see Log)"], app.name]];
         });
     });
 }
 
 - (void)confirmClear:(WQAppItem *)app
 {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"Clear %@?", app.name]
-        message:@"Deletes everything in the app's Documents, Library and tmp, like a fresh install. "
-                "The optional backup covers Documents and Library only; tmp is discarded and cannot be restored. "
-                "Logins, settings and offline content are lost. Close the app first."
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"清除 %@？", app.name]
+        message:@"这将删除该 App 的 Documents、Library 和 tmp 中的全部内容，如同全新安装。"
+                "可选备份仅覆盖 Documents 和 Library；tmp 会被丢弃且无法恢复。"
+                "登录状态、设置和离线内容都会丢失。请先关闭该 App。"
         preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Back Up, Then Clear" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *__unused a) {
+    [alert addAction:[UIAlertAction actionWithTitle:@"先备份，再清除" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *__unused a) {
         [self backUp:app then:^(BOOL ok) {
             if (ok) [self clear:app];
-            else [self finish:@"Not cleared" message:@"The backup did not complete, so nothing was deleted."];
+            else [self finish:@"未清除" message:@"备份未完成，因此未删除任何内容。"];
         }];
     }]];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Clear Without Backup" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *__unused a) {
+    [alert addAction:[UIAlertAction actionWithTitle:@"不备份直接清除" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *__unused a) {
         [self clear:app];
     }]];
     [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
@@ -816,7 +816,7 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
 {
     NSArray *backups = app.backups;
     if (backups.count == 1) { [self confirmRestore:app from:backups.firstObject]; return; }
-    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:@"Restore which backup?" message:app.name
+    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:@"恢复哪个备份？" message:app.name
                                                             preferredStyle:UIAlertControllerStyleActionSheet];
     for (NSDictionary *__unused b in backups) {
         [sheet addAction:[UIAlertAction actionWithTitle:wq_backup_label(b) style:UIAlertActionStyleDefault
@@ -832,16 +832,16 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
 {
     NSString *path = backup[@"path"];
     NSString *warning = [backup[@"verified"] boolValue] ? @""
-        : [NSString stringWithFormat:@"\n\nThis backup is unverified (%@). WQ Files will re-check its parts before changing anything.",
+        : [NSString stringWithFormat:@"\n\n此备份未验证（%@）。WQ Files 会在更改前重新检查其各部分。",
            backup[@"reason"] ?: @"no typed manifest"];
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"Restore %@?", app.name]
-        message:[NSString stringWithFormat:@"Replaces the app's current Documents and Library with the backup from %@; tmp is left untouched. "
-                 "The current data is backed up first, and put back if anything fails. Close the app first: a running app can make the operation non-snapshot-consistent.%@",
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"恢复 %@？", app.name]
+        message:[NSString stringWithFormat:@"这将用 %@ 的备份替换该 App 当前的 Documents 和 Library；tmp 不动。"
+                 "当前数据会先备份，失败时再还原。请先关闭该 App：运行中的 App 可能导致操作无法保持快照一致。%@",
                  wq_backup_label(backup), warning]
         preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"恢复" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *__unused a) {
-        [self setBusy:YES status:[NSString stringWithFormat:@"Restoring %@…", app.name]];
+        [self setBusy:YES status:[NSString stringWithFormat:@"正在恢复 %@…", app.name]];
         dispatch_async(wq_io(), ^{
             NSString *title = nil, *message = nil;
             [self restore:app from:path title:&title message:&message];
@@ -867,7 +867,7 @@ static BOOL wq_replace_part(NSString *src, NSString *dst, NSString **error)
     BOOL ok = wq_purge_and_verify(dst, &ignored, error);
     if (ok) {
         ok = wq_copy_part_and_verify(staging, dst, error);
-        if (!ok && error && !*error) *error = [NSString stringWithFormat:@"Could not restore %@", dst.lastPathComponent];
+        if (!ok && error && !*error) *error = [NSString stringWithFormat:@"无法恢复 %@", dst.lastPathComponent];
     }
     [NSFileManager.defaultManager removeItemAtPath:staging error:nil];
     return ok;
@@ -1081,7 +1081,7 @@ NSString *wq_recover_interrupted_restore(void)
     NSString *error = nil;
     if (!wq_rollback_safety(container, bundleID, safety, device, inode, &error)) {
         wq_log(@"restore recovery for %@: FAILED (%@)", bundleID, error);
-        return [NSString stringWithFormat:@"Automatic recovery of %@ failed: %@. The safety backup is %@; see Log.",
+        return [NSString stringWithFormat:@"自动恢复 %@ 失败：%@。安全备份为 %@；请查看日志。",
                 bundleID, error ?: @"unknown error", safety.lastPathComponent];
     }
     NSString *commitError = nil;
@@ -1109,18 +1109,18 @@ NSString *wq_recover_interrupted_restore(void)
     BOOL verified = NO;
     NSString *error = nil;
     if (!wq_validate_backup(backup, app.bundleID, YES, &parts, &manifest, &verified, &error)) {
-        *title = @"Not restored";
-        *message = [NSString stringWithFormat:@"The backup is not safe to restore (%@). Nothing was changed.", error ?: @"invalid manifest"];
+        *title = @"未恢复";
+        *message = [NSString stringWithFormat:@"此备份恢复不安全（%@）。未更改任何内容。", error ?: @"invalid manifest"];
         return;
     }
     if (!verified && !parts.count) {
-        *title = @"Not restored";
-        *message = @"The legacy backup is empty. Nothing was changed.";
+        *title = @"未恢复";
+        *message = @"旧版备份为空。未更改任何内容。";
         return;
     }
     if (!wq_validate_container(app.container, app.bundleID, app.containerDevice, app.containerInode, &error)) {
-        *title = @"Not restored";
-        *message = [NSString stringWithFormat:@"The selected app container is no longer safe to use (%@). Nothing was changed.", error];
+        *title = @"未恢复";
+        *message = [NSString stringWithFormat:@"所选 App 容器已不再安全（%@）。未更改任何内容。", error];
         return;
     }
     // 2. Keep the current data and a durable recovery journal before touching
@@ -1128,14 +1128,14 @@ NSString *wq_recover_interrupted_restore(void)
     NSString *safety = wq_make_app_backup(app.bundleID, app.container, app.containerDevice,
                                            app.containerInode, kBackupReasonBeforeRestore, &error);
     if (!safety) {
-        *title = @"Not restored";
-        *message = [NSString stringWithFormat:@"The current data couldn't be backed up first (%@). Nothing was changed.",
-                    error ?: @"see Log"];
+        *title = @"未恢复";
+        *message = [NSString stringWithFormat:@"当前数据无法先备份（%@）。未更改任何内容。",
+                    error ?: @"请查看日志"];
         return;
     }
     if (!wq_begin_restore_journal(app, backup, safety, &error)) {
-        *title = @"Not restored";
-        *message = [NSString stringWithFormat:@"%@. Nothing was changed; the safety backup was retained at %@ for manual recovery.",
+        *title = @"未恢复";
+        *message = [NSString stringWithFormat:@"%@。未更改任何内容；安全备份已保留在 %@，可手动恢复。",
                     error ?: @"The recovery journal could not be written", safety.lastPathComponent];
         return;
     }
@@ -1186,16 +1186,16 @@ NSString *wq_recover_interrupted_restore(void)
             BOOL removed = wq_remove_restore_journal(&removeError);
             if (!removed) wq_log(@"restore %@: journal cleanup pending (%@)", app.bundleID, removeError);
             wq_log(@"restore %@ from %@: OK", app.bundleID, backup.lastPathComponent);
-            *title = @"Restored";
+            *title = @"已恢复";
             NSString *cleanup = removed ? @"" : @" The recovery journal is committed and will be cleaned up at the next launch.";
-            *message = [NSString stringWithFormat:@"Open %@ to use the restored Documents and Library. The data from before is kept as backup %@; tmp was not changed. Keep the app closed during this operation.%@",
+            *message = [NSString stringWithFormat:@"请打开 %@ 使用恢复后的 Documents 和 Library。此前的数据已保留为备份 %@；tmp 未更改。此操作期间请保持该 App 关闭。%@",
                         app.name, safety.lastPathComponent, cleanup];
             return;
         }
         // The journal is still Active. Rolling back is the only safe outcome
         // if it cannot be marked committed, because a completed restore must
         // not be rolled back by the next launch.
-        error = [NSString stringWithFormat:@"The restore finished, but its recovery journal could not be committed (%@)", commitError];
+        error = [NSString stringWithFormat:@"还原已完成，但其恢复日志无法提交（%@）", commitError];
     }
     wq_log(@"restore %@ from %@: FAILED (%@), rolling back", app.bundleID, backup.lastPathComponent, error);
     NSString *rollbackError = nil;
@@ -1209,13 +1209,13 @@ NSString *wq_recover_interrupted_restore(void)
     if (!rolledBack) cleanupError = @"kept for recovery at the next launch";
     wq_log(@"restore %@: rollback %@, journal %@", app.bundleID,
            rolledBack ? @"OK" : @"FAILED", cleared ? @"cleared" : cleanupError);
-    *title = @"Restore failed";
+    *title = @"恢复失败";
     *message = rolledBack
-        ? [NSString stringWithFormat:@"%@. The previous data was put back.%@", error ?: @"Some files couldn't be written",
-           cleared ? @"" : @" Recovery will run again at the next launch because the journal could not be removed."]
-        : [NSString stringWithFormat:@"%@, and putting the previous data back also failed (%@). It is in backup %@; see the Log.%@",
-           error ?: @"Some files couldn't be written", rollbackError ?: @"see Log", safety.lastPathComponent,
-           cleared ? @"" : @" Recovery will run again at the next launch."];
+        ? [NSString stringWithFormat:@"%@。之前的数据已恢复。%@", error ?: @"部分文件无法写入",
+           cleared ? @"" : @" 由于无法删除日志，下次启动时将再次运行恢复。"]
+        : [NSString stringWithFormat:@"%@，并且恢复之前的数据也失败了（%@）。数据在备份 %@ 中；请查看日志。%@",
+           error ?: @"部分文件无法写入", rollbackError ?: @"请查看日志", safety.lastPathComponent,
+           cleared ? @"" : @" 下次启动时将再次运行恢复。"];
 }
 
 @end
