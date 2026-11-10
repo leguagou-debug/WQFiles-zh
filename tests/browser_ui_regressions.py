@@ -62,7 +62,7 @@ require(sharing, "Only regular files can be shared.", "special-file share refusa
 require(ui, "host.presentedViewController && !host.presentedViewController.isBeingDismissed", "validated alert host")
 require(sharing, "Share in progress", "share in-flight guard")
 require(sharing, "wq_clear_in_flight", "share in-flight cleanup")
-require(sharing, "actionWithTitle:@\"Cancel\"", "folder share cancel action")
+require(sharing, "actionWithTitle:@\"取消\"", "folder share cancel action")  # zh build: Cancel translated to 取消 in WQSharing.m
 clear_preparation = sharing.split("static void wq_clear_preparation", 1)[1].split("static BOOL wq_present_share", 1)[0]
 require(clear_preparation, "if (!host) return;", "nil weak host association guard")
 
